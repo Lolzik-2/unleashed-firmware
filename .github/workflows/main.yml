@@ -3,8 +3,6 @@ name: Build Cardputer Test
 on:
   push:
     branches: [ "dev", "main" ]
-  pull_request:
-    branches: [ "dev", "main" ]
   workflow_dispatch:
 
 jobs:
@@ -29,8 +27,16 @@ jobs:
       run: |
         pio run -e cardputer
 
+    - name: Merge Binaries
+      run: |
+        pio pkg exec -p tool-esptoolpy -- esptool.py --chip esp32s3 merge_bin -o merged-firmware.bin \
+          --flash_mode dio --flash_freq 80m --flash_size 8MB \
+          0x0 .pio/build/cardputer/bootloader.bin \
+          0x8000 .pio/build/cardputer/partitions.bin \
+          0x10000 .pio/build/cardputer/firmware.bin
+
     - name: Upload Firmware
       uses: actions/upload-artifact@v4
       with:
         name: cardputer-firmware
-        path: .pio/build/cardputer/firmware.bin
+        path: merged-firmware.bin
